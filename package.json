@@ -1,0 +1,13 @@
+{
+  "name": "@agentdata/plugin-elizaos",
+  "version": "1.0.0",
+  "description": "ElizaOS plugin for AgentData API — crypto market data via x402",
+  "type": "module",
+  "main": "index.js",
+  "keywords": ["elizaos", "x402", "crypto", "market-data", "ai-agent"],
+  "author": "AgentData",
+  "license": "MIT",
+  "peerDependencies": {
+    "@elizaos/core": ">=1.0.0"
+  }
+}

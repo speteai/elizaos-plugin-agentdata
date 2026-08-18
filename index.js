@@ -13,6 +13,13 @@
  */
 
 const BASE_URL_DEFAULT = 'https://agentdata-api.com';
+// The PAYMENT-REQUIRED header speaks x402 v2, where the field is `amount` and
+// the network is CAIP-2. Only the 402 *body* still uses v1's
+// `maxAmountRequired`. Reading the header and then asking for the v1 name
+// yields undefined, and BigInt(undefined) throws — which meant this plugin
+// could not complete a single payment in auto-pay mode. Resolve once.
+const amountOf = (accept) => accept.amount ?? accept.maxAmountRequired;
+
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
 // ============ AUTO-PAY CLIENT ============
@@ -56,7 +63,7 @@ async function buildFetcher(runtime) {
         message: {
           from: account.address,
           to: accept.payTo,
-          value: BigInt(accept.maxAmountRequired),
+          value: BigInt(amountOf(accept)),
           validAfter: BigInt(validAfter),
           validBefore: BigInt(validBefore),
           nonce,
@@ -66,7 +73,7 @@ async function buildFetcher(runtime) {
       const paymentPayload = {
         x402Version: 2, scheme: 'exact', network: accept.network,
         payload: { signature, authorization: {
-          from: account.address, to: accept.payTo, value: accept.maxAmountRequired,
+          from: account.address, to: accept.payTo, value: amountOf(accept),
           validAfter: String(validAfter), validBefore: String(validBefore), nonce,
         }},
       };
@@ -103,10 +110,77 @@ async function callEndpoint(runtime, path, params = {}) {
 // ============ ACTIONS ============
 
 const actions = [
+  // Listed first deliberately: these are the capabilities an agent cannot build
+  // for itself. It exists only while it runs, so it cannot wait, remember, or
+  // compare against its own last look. And a wired-up agent never re-reads the
+  // catalogue — whatever it will buy, it learns here, at integration time.
+  {
+    name: 'GET_CHANGES_SINCE_LAST_CALL',
+    similes: ['what changed', 'since last time', 'new data', 'delta', 'diff', 'updates'],
+    description: 'Fetch only what changed for a signal since this wallet last paid for it. Costs $0.001 USDC — cheaper than any full payload, and the server keeps the cursor so nothing is re-downloaded.',
+    validate: async () => true,
+    handler: async (runtime, message, state, options, callback) => {
+      const signal = options?.signal || 'sentiment';
+      const data = await callEndpoint(runtime, `/api/diff?signal=${encodeURIComponent(signal)}`);
+      const d = data.data || data;
+      const text = d.firstCall
+        ? `First look at ${signal}: ${d.newPoints} points from the last 24h.`
+        : `${d.newPoints} new ${signal} point(s) since your last paid call (${d.since}).`;
+      if (callback) callback({ text });
+      return text;
+    },
+    examples: [[
+      { user: 'user', content: { text: 'What changed in sentiment since I last checked?' }},
+      { user: 'agent', content: { text: 'Fetching only the new points.', action: 'GET_CHANGES_SINCE_LAST_CALL' }},
+    ]],
+  },
+
+  {
+    name: 'WATCH_CONDITION',
+    similes: ['alert me', 'notify when', 'watch for', 'tell me when', 'standing order'],
+    description: 'Register a standing condition on a signal and let the always-on server watch it. Costs $0.010 USDC for up to 168h. Poll the status free instead of paying for repeated data calls.',
+    validate: async () => true,
+    handler: async (runtime, message, state, options, callback) => {
+      const { signal = 'sentiment', op = 'above', threshold, subject, hours = 24 } = options || {};
+      if (threshold === undefined) throw new Error('threshold is required');
+      const q = new URLSearchParams({ signal, op, threshold: String(threshold), hours: String(hours) });
+      if (subject) q.set('subject', subject);
+      const data = await callEndpoint(runtime, `/api/watch?${q}`);
+      const d = data.data || data;
+      const text = `Watching ${signal} ${op} ${threshold} until ${d.expiresAt}. Note: it reports a CHANGE, so a condition already true fires on the next observation, not instantly.`;
+      if (callback) callback({ text });
+      return text;
+    },
+    examples: [[
+      { user: 'user', content: { text: 'Tell me when sentiment goes above 70.' }},
+      { user: 'agent', content: { text: 'Registering a watch on the server.', action: 'WATCH_CONDITION' }},
+    ]],
+  },
+
+  {
+    name: 'GET_SIGNAL_CALIBRATION',
+    similes: ['how accurate', 'track record', 'hit rate', 'is this reliable', 'calibration'],
+    description: 'FREE. How often these signals actually turned out right, scored against a naive baseline. Claims are recorded before the outcome exists. Worth reading before trusting any signal — including to see which ones do not yet justify their price.',
+    validate: async () => true,
+    handler: async (runtime, message, state, options, callback) => {
+      const days = options?.days || 30;
+      const data = await callEndpoint(runtime, `/calibration?days=${days}`);
+      const rows = (data.signals || []).map(x =>
+        `• ${x.signal}/${x.claim}: ${x.hitRate === null ? 'n/a' : (x.hitRate * 100).toFixed(1) + '%'} over ${x.resolved} resolved${x.beatsNaive === null ? '' : (x.beatsNaive ? ' (beats naive)' : ' (does NOT beat naive)')}`);
+      const text = rows.length ? `Signal track record:\n${rows.join('\n')}` : 'No resolved claims in this window yet.';
+      if (callback) callback({ text });
+      return text;
+    },
+    examples: [[
+      { user: 'user', content: { text: 'How reliable are these signals?' }},
+      { user: 'agent', content: { text: 'Reading the published track record.', action: 'GET_SIGNAL_CALIBRATION' }},
+    ]],
+  },
+
   {
     name: 'GET_CRYPTO_PRICES',
     similes: ['crypto prices', 'bitcoin price', 'ethereum price', 'btc', 'eth price', 'current prices', 'market prices'],
-    description: 'Get real-time prices for BTC, ETH, SOL, BNB, XRP. Costs $0.001 USDC via x402.',
+    description: 'Get real-time prices for BTC, ETH, SOL, BNB, XRP. Costs $0.002 USDC via x402.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/prices');
@@ -123,7 +197,7 @@ const actions = [
   {
     name: 'GET_FUNDING_RATES',
     similes: ['funding rate', 'perpetuals', 'perp funding', 'longs vs shorts'],
-    description: 'Get perpetual futures funding rates with long/short bias signals. Costs $0.001 USDC.',
+    description: 'Get perpetual futures funding rates with long/short bias signals. Costs $0.002 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/funding-rates');
@@ -200,7 +274,7 @@ const actions = [
   {
     name: 'GET_SENTIMENT',
     similes: ['fear and greed', 'sentiment', 'market mood'],
-    description: 'Composite market sentiment: Fear & Greed Index + Funding-based. Costs $0.001 USDC.',
+    description: 'Composite market sentiment: Fear & Greed Index + Funding-based. Costs $0.002 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/sentiment');
@@ -213,7 +287,7 @@ const actions = [
   {
     name: 'GET_STABLECOIN_HEALTH',
     similes: ['usdc peg', 'dai peg', 'depeg', 'stablecoin status'],
-    description: 'USDC/DAI peg monitoring + top 10 stablecoins. Costs $0.001 USDC.',
+    description: 'USDC/DAI peg monitoring + top 10 stablecoins. Costs $0.002 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/stablecoin-health');

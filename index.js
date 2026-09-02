@@ -213,7 +213,7 @@ const actions = [
   {
     name: 'GET_MARKET_OVERVIEW',
     similes: ['market overview', 'market sentiment', 'market state', 'how is the market'],
-    description: 'Full market overview with sentiment bias and arbitrage signals. Costs $0.002 USDC.',
+    description: 'Full market overview with sentiment bias and arbitrage signals. Costs $0.003 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/market-overview');
@@ -227,7 +227,7 @@ const actions = [
   {
     name: 'GET_DEFI_YIELDS',
     similes: ['defi yields', 'yield farming', 'best yields', 'usdc yield', 'stablecoin yield'],
-    description: 'Top DeFi yield opportunities from Aave, Compound, Morpho, Pendle. Costs $0.002 USDC.',
+    description: 'Top DeFi yield opportunities from Aave, Compound, Morpho, Pendle. Costs $0.003 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/defi-yields');
@@ -242,7 +242,7 @@ const actions = [
   {
     name: 'GET_ARBITRAGE_OPPORTUNITIES',
     similes: ['arbitrage', 'arb', 'cross exchange spread', 'price difference'],
-    description: 'Cross-exchange arbitrage opportunities (MEXC/Binance/Bybit/OKX). Costs $0.003 USDC.',
+    description: 'Cross-exchange arbitrage opportunities (MEXC/Binance/Bybit/OKX). Costs $0.005 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const data = await callEndpoint(runtime, '/api/arbitrage-opportunities');
@@ -258,7 +258,7 @@ const actions = [
   {
     name: 'GET_TECHNICAL_INDICATORS',
     similes: ['rsi', 'macd', 'bollinger', 'technical indicators', 'ta'],
-    description: 'Get RSI, MACD, Bollinger Bands, ATR for a symbol. Costs $0.002 USDC.',
+    description: 'Get RSI, MACD, Bollinger Bands, ATR for a symbol. Costs $0.003 USDC.',
     validate: async () => true,
     handler: async (runtime, message, state, options, callback) => {
       const symbol = options?.symbol || state?.symbol || 'BTCUSDT';

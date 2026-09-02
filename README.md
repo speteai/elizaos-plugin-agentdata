@@ -43,14 +43,17 @@ These trigger when the user mentions relevant keywords:
 
 | Action | Price | Trigger phrases |
 |--------|-------|----------------|
-| `GET_CRYPTO_PRICES` | $0.001 | "crypto prices", "bitcoin price", "eth price" |
-| `GET_FUNDING_RATES` | $0.001 | "funding rate", "perpetuals" |
-| `GET_MARKET_OVERVIEW` | $0.002 | "market overview", "market sentiment" |
-| `GET_DEFI_YIELDS` | $0.002 | "defi yields", "best yield" |
-| `GET_ARBITRAGE_OPPORTUNITIES` | $0.003 | "arbitrage", "price difference" |
-| `GET_TECHNICAL_INDICATORS` | $0.002 | "rsi", "macd", "ta" |
-| `GET_SENTIMENT` | $0.001 | "fear and greed", "sentiment" |
-| `GET_STABLECOIN_HEALTH` | $0.001 | "usdc peg", "depeg" |
+| `GET_CHANGES_SINCE_LAST_CALL` | $0.001 | "what changed", "since last time" |
+| `WATCH_CONDITION` | $0.010 | "alert me when", "watch for" |
+| `GET_SIGNAL_CALIBRATION` | free | "how accurate", "track record" |
+| `GET_CRYPTO_PRICES` | $0.002 | "crypto prices", "bitcoin price", "eth price" |
+| `GET_FUNDING_RATES` | $0.002 | "funding rate", "perpetuals" |
+| `GET_MARKET_OVERVIEW` | $0.003 | "market overview", "market sentiment" |
+| `GET_DEFI_YIELDS` | $0.003 | "defi yields", "best yield" |
+| `GET_ARBITRAGE_OPPORTUNITIES` | $0.005 | "arbitrage", "price difference" |
+| `GET_TECHNICAL_INDICATORS` | $0.003 | "rsi", "macd", "ta" |
+| `GET_SENTIMENT` | $0.002 | "fear and greed", "sentiment" |
+| `GET_STABLECOIN_HEALTH` | $0.002 | "usdc peg", "depeg" |
 
 ## Provider
 
@@ -68,11 +71,11 @@ No ETH required on the buyer wallet — the AgentData facilitator pays settlemen
 
 ```
 User:  What are BTC and ETH doing right now?
-Agent: [executes GET_CRYPTO_PRICES — $0.001 USDC]
+Agent: [executes GET_CRYPTO_PRICES — $0.002 USDC]
        Bitcoin is at $68,718, Ethereum at $2,079.
 
 User:  Is there arbitrage anywhere?
-Agent: [executes GET_ARBITRAGE_OPPORTUNITIES — $0.003 USDC]
+Agent: [executes GET_ARBITRAGE_OPPORTUNITIES — $0.005 USDC]
        Yes: SOL has a 0.12% spread between MEXC and Binance...
 ```
 

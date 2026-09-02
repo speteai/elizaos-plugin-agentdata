@@ -1,6 +1,6 @@
 {
   "name": "@agentdata/plugin-elizaos",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "ElizaOS plugin for AgentData API — crypto market data via x402",
   "type": "module",
   "main": "index.js",
@@ -30,7 +30,11 @@
   },
   "homepage": "https://agentdata-api.com",
   "scripts": {
+    "test": "node --test tests/",
     "check-catalogue": "node check-catalogue.mjs",
-    "prepublishOnly": "npm run check-catalogue"
+    "prepublishOnly": "npm test && npm run check-catalogue"
+  },
+  "dependencies": {
+    "viem": "^2.47.12"
   }
 }
